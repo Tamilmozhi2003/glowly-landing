@@ -1,6 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react';
+import { useLenis } from 'lenis/react';
+
+gsap.registerPlugin(ScrollTrigger);
 import {
   Search,
   User,
@@ -61,22 +67,27 @@ export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeNav, setActiveNav] = useState('home');
+  const mainContainerRef = useRef(null);
 
-  // Smooth scroll handler for navbar links
+  // Smooth scroll handler for navbar links with Lenis integration
   const scrollToSection = (e, sectionId) => {
     if (e && e.preventDefault) {
       e.preventDefault();
     }
     const element = document.getElementById(sectionId);
     if (element) {
-      const navbarHeight = 84;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition =
-        elementPosition + window.pageYOffset - navbarHeight;
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
+      if (window.lenis) {
+        window.lenis.scrollTo(element, { offset: -84, duration: 1.2 });
+      } else {
+        const navbarHeight = 84;
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition =
+          elementPosition + window.pageYOffset - navbarHeight;
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
       setActiveNav(sectionId);
     }
   };
@@ -89,6 +100,146 @@ export default function Home() {
   // Parallax mouse position for Hero Mosaic
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const heroRef = useRef(null);
+
+  // Synchronize active navigation link with Lenis scroll position
+  useLenis((lenis) => {
+    const scrollPos = (lenis.scroll || window.scrollY) + 140;
+    const sectionIds = ['home', 'shop', 'about', 'routine', 'journal'];
+    for (let i = sectionIds.length - 1; i >= 0; i--) {
+      const el = document.getElementById(sectionIds[i]);
+      if (el && el.offsetTop <= scrollPos) {
+        setActiveNav(sectionIds[i]);
+        break;
+      }
+    }
+  });
+
+  // Rich GSAP & ScrollTrigger Animations
+  useGSAP(
+    () => {
+      // 1. Ambient Glow Spheres continuous floating loop
+      gsap.to('.glow-sphere-1', {
+        y: -40,
+        x: 25,
+        scale: 1.15,
+        duration: 7,
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut',
+      });
+      gsap.to('.glow-sphere-2', {
+        y: 35,
+        x: -25,
+        scale: 1.1,
+        duration: 8,
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut',
+        delay: 0.5,
+      });
+
+      // 2. Parallax on hero background curves with ScrollTrigger
+      gsap.to('.hero-bg-curves', {
+        scrollTrigger: {
+          trigger: '.hero-section',
+          start: 'top top',
+          end: 'bottom top',
+          scrub: 1.2,
+        },
+        y: 120,
+        opacity: 0.45,
+        ease: 'none',
+      });
+
+      // 3. Products Grid ScrollTrigger reveal
+      gsap.from('.products-grid-modern .product-card-modern', {
+        scrollTrigger: {
+          trigger: '.products-grid-modern',
+          start: 'top 85%',
+          toggleActions: 'play none none none',
+        },
+        opacity: 0,
+        y: 45,
+        duration: 0.8,
+        stagger: 0.12,
+        ease: 'power3.out',
+      });
+
+      // 4. Brand Story Section visual parallax & benefits staggered reveal
+      gsap.to('.story-visual-card img', {
+        scrollTrigger: {
+          trigger: '.story-visual-card',
+          start: 'top bottom',
+          end: 'bottom top',
+          scrub: 1,
+        },
+        y: -35,
+        scale: 1.05,
+        ease: 'none',
+      });
+
+      gsap.from('.story-benefit-row', {
+        scrollTrigger: {
+          trigger: '.story-benefits-list',
+          start: 'top 85%',
+          toggleActions: 'play none none none',
+        },
+        opacity: 0,
+        x: 35,
+        duration: 0.7,
+        stagger: 0.12,
+        ease: 'power3.out',
+      });
+
+      // 5. Why Choose Us Section entrance with ScrollTrigger
+      ScrollTrigger.create({
+        trigger: '#why-choose',
+        start: 'top 75%',
+        onEnter: () => setIsWhyChooseInView(true),
+      });
+
+      // 6. Testimonials & Glow Gallery reveals with ScrollTrigger
+      gsap.from('.testimonials-grid-modern .testimonial-card-modern', {
+        scrollTrigger: {
+          trigger: '.testimonials-grid-modern',
+          start: 'top 85%',
+          toggleActions: 'play none none none',
+        },
+        opacity: 0,
+        y: 35,
+        duration: 0.8,
+        stagger: 0.15,
+        ease: 'power3.out',
+      });
+
+      gsap.from('.glow-gallery-grid .glow-gallery-item', {
+        scrollTrigger: {
+          trigger: '.glow-gallery-grid',
+          start: 'top 88%',
+          toggleActions: 'play none none none',
+        },
+        opacity: 0,
+        scale: 0.9,
+        duration: 0.6,
+        stagger: 0.08,
+        ease: 'power2.out',
+      });
+
+      // 7. Newsletter card reveal
+      gsap.from('.newsletter-card', {
+        scrollTrigger: {
+          trigger: '.newsletter-card',
+          start: 'top 90%',
+          toggleActions: 'play none none none',
+        },
+        opacity: 0,
+        y: 35,
+        duration: 0.85,
+        ease: 'power3.out',
+      });
+    },
+    { scope: mainContainerRef }
+  );
 
   useEffect(() => {
     // Reset scroll position on refresh so the entrance animation plays from top
@@ -519,7 +670,7 @@ export default function Home() {
   };
 
   return (
-    <div className="glisty-page" id="top">
+    <div className="glisty-page" id="top" ref={mainContainerRef}>
       {/* Toast Notification */}
       {toastMessage && (
         <div className="toast-notification">
@@ -641,6 +792,7 @@ export default function Home() {
           >
             <div
               className="mobile-nav-drawer"
+              data-lenis-prevent
               onClick={(e) => e.stopPropagation()}
             >
               <div className="mobile-nav-header">
@@ -746,6 +898,7 @@ export default function Home() {
         <div className="modal-overlay" onClick={() => setIsSearchOpen(false)}>
           <div
             className="search-modal-box"
+            data-lenis-prevent
             onClick={(e) => e.stopPropagation()}
           >
             <div className="search-header">
@@ -779,6 +932,7 @@ export default function Home() {
         <div className="modal-overlay" onClick={() => setIsCartOpen(false)}>
           <aside
             className="cart-drawer"
+            data-lenis-prevent
             onClick={(e) => e.stopPropagation()}
             aria-label="Shopping Cart Drawer"
           >
